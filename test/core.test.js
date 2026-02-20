@@ -14,6 +14,7 @@ test('session creation and join flow works', () => {
   const player = sm.joinSession(session.joinCode, { playerName: 'Alice' });
   assert.equal(player.playerName, 'Alice');
   assert.equal(sm.getSession(session.joinCode).players.length, 1);
+  assert.equal(sm.getSession(session.joinCode.toLowerCase()).players.length, 1);
 
   assert.throws(
     () => sm.joinSession(session.joinCode, { playerName: '   ' }),
@@ -43,8 +44,11 @@ test('deck parsing routes by extension', () => {
   assert.equal(ygoDeck.cards[1].section, 'extra');
   assert.equal(ygoDeck.cards[2].section, 'side');
 
-  const mtgDeck = parseDeckByExtension('txt', '4 Lightning Bolt');
+  const mtgDeck = parseDeckByExtension('txt', '4   Lightning   Bolt');
   assert.equal(mtgDeck.cards[0].name, 'Lightning Bolt');
+
+  const pokemonDeck = parseDeckByExtension('pkd', '2   Basic Energy');
+  assert.equal(pokemonDeck.cards[0].name, 'Basic Energy');
 });
 
 test('registry provides three launch rulesets', () => {

@@ -34,6 +34,7 @@ npm start
 ```
 
 Host starts on `0.0.0.0:8787` and is reachable on LAN by local IP.
+Join codes are 6 hex characters and are accepted case-insensitively by the host APIs.
 
 ## Android APK build
 

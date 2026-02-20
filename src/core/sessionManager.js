@@ -3,7 +3,8 @@ import { RulesetRegistry } from '../rules/rulesetRegistry.js';
 import { DisplayMode, PublicViews } from './gameModes.js';
 
 const isNonEmptyString = (value) => typeof value === 'string' && value.trim().length > 0;
-const isJoinCode = (value) => /^[A-F0-9]{6}$/.test(String(value ?? ''));
+const normalizeJoinCode = (value) => String(value ?? '').trim().toUpperCase();
+const isJoinCode = (value) => /^[A-F0-9]{6}$/.test(normalizeJoinCode(value));
 
 export class SessionManager {
   constructor() {
@@ -46,7 +47,7 @@ export class SessionManager {
 
   getSession(joinCode) {
     if (!isJoinCode(joinCode)) return undefined;
-    return this.sessions.get(joinCode);
+    return this.sessions.get(normalizeJoinCode(joinCode));
   }
 
   joinSession(joinCode, { playerName, avatar }) {
@@ -88,8 +89,9 @@ export class SessionManager {
 
   requireSession(joinCode) {
     if (!isJoinCode(joinCode)) throw new Error('Invalid joinCode format');
-    const session = this.sessions.get(joinCode);
-    if (!session) throw new Error(`Session not found: ${joinCode}`);
+    const normalizedJoinCode = normalizeJoinCode(joinCode);
+    const session = this.sessions.get(normalizedJoinCode);
+    if (!session) throw new Error(`Session not found: ${normalizedJoinCode}`);
     return session;
   }
 }

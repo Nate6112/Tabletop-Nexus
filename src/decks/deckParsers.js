@@ -1,14 +1,16 @@
 const cleanLine = (line) => line.trim();
 
+const parseQuantityLine = (line) => {
+  const [count, ...nameParts] = line.split(/\s+/);
+  return { quantity: Number(count), name: nameParts.join(' ') };
+};
+
 export function parseArenaOrMtgoTxt(input) {
   const cards = input
     .split('\n')
     .map(cleanLine)
     .filter((line) => line && !line.startsWith('//'))
-    .map((line) => {
-      const [count, ...name] = line.split(' ');
-      return { quantity: Number(count), name: name.join(' ') };
-    })
+    .map(parseQuantityLine)
     .filter((entry) => entry.quantity > 0 && entry.name.length > 0);
 
   return { format: 'txt', cards };
@@ -50,11 +52,8 @@ export function parsePokemonPkd(input) {
     .split('\n')
     .map(cleanLine)
     .filter(Boolean)
-    .map((line) => {
-      const [quantity, ...cardName] = line.split(' ');
-      return { quantity: Number(quantity), name: cardName.join(' ') };
-    })
-    .filter((entry) => entry.quantity > 0);
+    .map(parseQuantityLine)
+    .filter((entry) => entry.quantity > 0 && entry.name.length > 0);
 
   return { format: 'pkd', cards };
 }
