@@ -8,6 +8,10 @@ const port = Number(process.env.PORT ?? 8787);
 const app = new AppOrchestrator();
 app.profileStore.init();
 app.lobbyAgent.startDiscoveryListener();
+import { SessionManager } from '../core/sessionManager.js';
+
+const port = Number(process.env.PORT ?? 8787);
+const sessionManager = new SessionManager();
 
 const readJsonBody = async (req) => {
   const chunks = [];
@@ -29,7 +33,6 @@ const server = createServer(async (req, res) => {
         mode: 'LAN offline-first host',
         routes: [
           '/profile/setup',
-          '/profile',
           '/deck/import',
           '/session/create',
           '/session/join',
@@ -38,12 +41,6 @@ const server = createServer(async (req, res) => {
           '/lobby/rooms?search=&rulesetId='
         ]
       });
-    }
-
-
-    if (req.method === 'GET' && req.url === '/profile') {
-      const profile = app.profileStore.load();
-      return send(res, 200, { profile });
     }
 
     if (req.method === 'POST' && req.url === '/profile/setup') {
@@ -73,27 +70,32 @@ const server = createServer(async (req, res) => {
         maxPlayers: body.maxPlayers
       });
       return send(res, 200, result);
+        routes: ['/session/create', '/session/join', '/session/save', '/session/state?joinCode=XXXX']
+      });
+    }
+
+    if (req.method === 'POST' && req.url === '/session/create') {
+      const body = await readJsonBody(req);
+      const session = sessionManager.createSession(body);
+      return send(res, 200, { session });
     }
 
     if (req.method === 'POST' && req.url === '/session/join') {
       const body = await readJsonBody(req);
-      if (!app.hostAgent.canJoin(body.joinCode)) {
-        return send(res, 409, { error: 'Room is full' });
-      }
-
       const player = joinLobbyWorkflow({
         clientAgent: app.clientAgent,
         joinCode: body.joinCode,
         playerName: body.playerName,
         avatar: body.avatar
       });
-      const room = app.hostAgent.syncRoomSeatCount(body.joinCode);
-      return send(res, 200, { player, room });
+      const player = sessionManager.joinSession(body.joinCode, body);
+      return send(res, 200, { player });
     }
 
     if (req.method === 'POST' && req.url === '/session/save') {
       const body = await readJsonBody(req);
       app.hostAgent.sessionManager.saveSnapshot(body.joinCode, body.state);
+      sessionManager.saveSnapshot(body.joinCode, body.state);
       return send(res, 200, { ok: true });
     }
 
@@ -101,6 +103,7 @@ const server = createServer(async (req, res) => {
       const url = new URL(req.url, 'http://localhost');
       const joinCode = url.searchParams.get('joinCode');
       const session = app.hostAgent.sessionManager.getSession(joinCode);
+      const session = sessionManager.getSession(joinCode);
       if (!session) return send(res, 404, { error: 'Session not found' });
       return send(res, 200, { session });
     }

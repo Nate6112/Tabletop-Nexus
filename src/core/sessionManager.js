@@ -26,12 +26,15 @@ export class SessionManager {
     while (this.sessions.has(joinCode)) {
       joinCode = crypto.randomBytes(3).toString('hex').toUpperCase();
     }
+    const sessionId = crypto.randomUUID().slice(0, 8);
+    const joinCode = crypto.randomBytes(3).toString('hex').toUpperCase();
 
     const session = {
       sessionId,
       joinCode,
       createdAt: Date.now(),
       hostName: hostName.trim(),
+      hostName,
       displayMode,
       publicView: PublicViews[displayMode],
       ruleset: RulesetRegistry.require(rulesetId),
@@ -42,6 +45,7 @@ export class SessionManager {
 
     this.sessions.set(joinCode, session);
     this.logEvent(joinCode, 'session-created', { hostName: session.hostName, displayMode, rulesetId });
+    this.logEvent(joinCode, 'session-created', { hostName, displayMode, rulesetId });
     return session;
   }
 
@@ -63,12 +67,21 @@ export class SessionManager {
     const player = {
       id: crypto.randomUUID().slice(0, 8),
       playerName: playerName.trim(),
+    return this.sessions.get(joinCode);
+  }
+
+  joinSession(joinCode, { playerName, avatar }) {
+    const session = this.requireSession(joinCode);
+    const player = {
+      id: crypto.randomUUID().slice(0, 8),
+      playerName,
       avatar: avatar ?? 'default',
       connectedAt: Date.now(),
       privateZones: {}
     };
     session.players.push(player);
     this.logEvent(joinCode, 'player-joined', { playerName: player.playerName });
+    this.logEvent(joinCode, 'player-joined', { playerName });
     return player;
   }
 
@@ -92,6 +105,8 @@ export class SessionManager {
     const normalizedJoinCode = normalizeJoinCode(joinCode);
     const session = this.sessions.get(normalizedJoinCode);
     if (!session) throw new Error(`Session not found: ${normalizedJoinCode}`);
+    const session = this.sessions.get(joinCode);
+    if (!session) throw new Error(`Session not found: ${joinCode}`);
     return session;
   }
 }
