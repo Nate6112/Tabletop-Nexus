@@ -16,6 +16,9 @@ export class HostAgent {
       maxPlayers
     };
 
+    this.discovery.broadcast(room);
+    if (this.lobbyDirectory) this.lobbyDirectory.upsert(room);
+    return { session, room };
     this.publishRoom(room);
     return { session, room };
   }

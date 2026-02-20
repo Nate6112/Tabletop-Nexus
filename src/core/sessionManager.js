@@ -2,12 +2,30 @@ import crypto from 'node:crypto';
 import { RulesetRegistry } from '../rules/rulesetRegistry.js';
 import { DisplayMode, PublicViews } from './gameModes.js';
 
+const isNonEmptyString = (value) => typeof value === 'string' && value.trim().length > 0;
+const normalizeJoinCode = (value) => String(value ?? '').trim().toUpperCase();
+const isJoinCode = (value) => /^[A-F0-9]{6}$/.test(normalizeJoinCode(value));
+
 export class SessionManager {
   constructor() {
     this.sessions = new Map();
   }
 
   createSession({ hostName, displayMode = DisplayMode.BIG_SCREEN, rulesetId = 'mtg' }) {
+    if (!isNonEmptyString(hostName)) {
+      throw new Error('hostName is required');
+    }
+
+    if (!Object.values(DisplayMode).includes(displayMode)) {
+      throw new Error(`Unsupported display mode: ${displayMode}`);
+    }
+
+    const sessionId = crypto.randomUUID().slice(0, 8);
+
+    let joinCode = crypto.randomBytes(3).toString('hex').toUpperCase();
+    while (this.sessions.has(joinCode)) {
+      joinCode = crypto.randomBytes(3).toString('hex').toUpperCase();
+    }
     const sessionId = crypto.randomUUID().slice(0, 8);
     const joinCode = crypto.randomBytes(3).toString('hex').toUpperCase();
 
@@ -15,6 +33,7 @@ export class SessionManager {
       sessionId,
       joinCode,
       createdAt: Date.now(),
+      hostName: hostName.trim(),
       hostName,
       displayMode,
       publicView: PublicViews[displayMode],
@@ -25,11 +44,29 @@ export class SessionManager {
     };
 
     this.sessions.set(joinCode, session);
+    this.logEvent(joinCode, 'session-created', { hostName: session.hostName, displayMode, rulesetId });
     this.logEvent(joinCode, 'session-created', { hostName, displayMode, rulesetId });
     return session;
   }
 
   getSession(joinCode) {
+    if (!isJoinCode(joinCode)) return undefined;
+    return this.sessions.get(normalizeJoinCode(joinCode));
+  }
+
+  joinSession(joinCode, { playerName, avatar }) {
+    if (!isJoinCode(joinCode)) {
+      throw new Error('Invalid joinCode format');
+    }
+
+    if (!isNonEmptyString(playerName)) {
+      throw new Error('playerName is required');
+    }
+
+    const session = this.requireSession(joinCode);
+    const player = {
+      id: crypto.randomUUID().slice(0, 8),
+      playerName: playerName.trim(),
     return this.sessions.get(joinCode);
   }
 
@@ -43,6 +80,7 @@ export class SessionManager {
       privateZones: {}
     };
     session.players.push(player);
+    this.logEvent(joinCode, 'player-joined', { playerName: player.playerName });
     this.logEvent(joinCode, 'player-joined', { playerName });
     return player;
   }
@@ -63,6 +101,10 @@ export class SessionManager {
   }
 
   requireSession(joinCode) {
+    if (!isJoinCode(joinCode)) throw new Error('Invalid joinCode format');
+    const normalizedJoinCode = normalizeJoinCode(joinCode);
+    const session = this.sessions.get(normalizedJoinCode);
+    if (!session) throw new Error(`Session not found: ${normalizedJoinCode}`);
     const session = this.sessions.get(joinCode);
     if (!session) throw new Error(`Session not found: ${joinCode}`);
     return session;
