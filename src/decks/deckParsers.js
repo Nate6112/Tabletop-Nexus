@@ -1,0 +1,59 @@
+const cleanLine = (line) => line.trim();
+
+export function parseArenaOrMtgoTxt(input) {
+  const cards = input
+    .split('\n')
+    .map(cleanLine)
+    .filter((line) => line && !line.startsWith('//'))
+    .map((line) => {
+      const [count, ...name] = line.split(' ');
+      return { quantity: Number(count), name: name.join(' ') };
+    })
+    .filter((entry) => entry.quantity > 0 && entry.name.length > 0);
+
+  return { format: 'txt', cards };
+}
+
+export function parseYdk(input) {
+  const cards = [];
+  let section = 'main';
+
+  for (const rawLine of input.split('\n')) {
+    const line = cleanLine(rawLine);
+    if (!line || line.startsWith('#')) {
+      if (line === '#extra') section = 'extra';
+      if (line === '!side') section = 'side';
+      continue;
+    }
+    cards.push({ section, passcode: line });
+  }
+
+  return { format: 'ydk', cards };
+}
+
+export function parsePokemonPkd(input) {
+  const cards = input
+    .split('\n')
+    .map(cleanLine)
+    .filter(Boolean)
+    .map((line) => {
+      const [quantity, ...cardName] = line.split(' ');
+      return { quantity: Number(quantity), name: cardName.join(' ') };
+    })
+    .filter((entry) => entry.quantity > 0);
+
+  return { format: 'pkd', cards };
+}
+
+export function parseDeckByExtension(extension, input) {
+  switch (extension.toLowerCase()) {
+    case 'txt':
+      return parseArenaOrMtgoTxt(input);
+    case 'ydk':
+      return parseYdk(input);
+    case 'pkd':
+      return parsePokemonPkd(input);
+    default:
+      throw new Error(`Unsupported deck format: ${extension}`);
+  }
+}
