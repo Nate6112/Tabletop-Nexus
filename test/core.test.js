@@ -51,6 +51,15 @@ test('deck parsing routes by extension', () => {
   assert.equal(pokemonDeck.cards[0].name, 'Basic Energy');
 });
 
+test('deck parsing routes by extension', () => {
+  const ygoDeck = parseDeckByExtension('ydk', '#main\n12345\n#extra\n67890');
+  assert.equal(ygoDeck.format, 'ydk');
+  assert.equal(ygoDeck.cards.length, 2);
+
+  const mtgDeck = parseDeckByExtension('txt', '4 Lightning Bolt');
+  assert.equal(mtgDeck.cards[0].name, 'Lightning Bolt');
+});
+
 test('registry provides three launch rulesets', () => {
   const ids = RulesetRegistry.list().map((r) => r.id).sort();
   assert.deepEqual(ids, ['mtg', 'pokemon', 'ygo']);
