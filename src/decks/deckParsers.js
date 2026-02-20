@@ -20,11 +20,25 @@ export function parseYdk(input) {
 
   for (const rawLine of input.split('\n')) {
     const line = cleanLine(rawLine);
-    if (!line || line.startsWith('#')) {
-      if (line === '#extra') section = 'extra';
-      if (line === '!side') section = 'side';
+    if (!line) continue;
+
+    if (line === '#main') {
+      section = 'main';
       continue;
     }
+
+    if (line === '#extra') {
+      section = 'extra';
+      continue;
+    }
+
+    if (line === '!side') {
+      section = 'side';
+      continue;
+    }
+
+    if (line.startsWith('#')) continue;
+
     cards.push({ section, passcode: line });
   }
 
