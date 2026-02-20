@@ -45,7 +45,7 @@ A native Android wrapper is included in `android/` so the client can be distribu
 
 ```bash
 cd android
-gradle :app:assembleDebug
+JAVA_HOME=<path-to-jdk17> gradle :app:assembleDebug
 ```
 
 4. APK output:
@@ -55,6 +55,8 @@ android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
 You can then transfer and install this APK on phones/tablets for LAN play.
+
+> Note: Android Gradle Plugin 8.x expects JDK 17 for builds.
 
 ## Next milestones
 

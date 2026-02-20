@@ -3,6 +3,7 @@ import { RulesetRegistry } from '../rules/rulesetRegistry.js';
 import { DisplayMode, PublicViews } from './gameModes.js';
 
 const isNonEmptyString = (value) => typeof value === 'string' && value.trim().length > 0;
+const isJoinCode = (value) => /^[A-F0-9]{6}$/.test(String(value ?? ''));
 
 export class SessionManager {
   constructor() {
@@ -19,7 +20,11 @@ export class SessionManager {
     }
 
     const sessionId = crypto.randomUUID().slice(0, 8);
-    const joinCode = crypto.randomBytes(3).toString('hex').toUpperCase();
+
+    let joinCode = crypto.randomBytes(3).toString('hex').toUpperCase();
+    while (this.sessions.has(joinCode)) {
+      joinCode = crypto.randomBytes(3).toString('hex').toUpperCase();
+    }
 
     const session = {
       sessionId,
@@ -40,10 +45,15 @@ export class SessionManager {
   }
 
   getSession(joinCode) {
+    if (!isJoinCode(joinCode)) return undefined;
     return this.sessions.get(joinCode);
   }
 
   joinSession(joinCode, { playerName, avatar }) {
+    if (!isJoinCode(joinCode)) {
+      throw new Error('Invalid joinCode format');
+    }
+
     if (!isNonEmptyString(playerName)) {
       throw new Error('playerName is required');
     }
@@ -77,6 +87,7 @@ export class SessionManager {
   }
 
   requireSession(joinCode) {
+    if (!isJoinCode(joinCode)) throw new Error('Invalid joinCode format');
     const session = this.sessions.get(joinCode);
     if (!session) throw new Error(`Session not found: ${joinCode}`);
     return session;

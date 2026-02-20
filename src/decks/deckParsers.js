@@ -37,7 +37,7 @@ export function parseYdk(input) {
       continue;
     }
 
-    if (line.startsWith('#')) continue;
+    if (line.startsWith('#') || line.startsWith('!')) continue;
 
     cards.push({ section, passcode: line });
   }
